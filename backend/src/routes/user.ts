@@ -116,18 +116,18 @@ userRouter.post('/signup', async(c) => {
         // Store the combined hash+salt string
         const hashedPassword = await hashPassword(body.password);
 
-        // const user = await prisma.user.create({
-        //     data: {
-        //         name: body.name,
-        //         email: body.email,
-        //         password: hashedPassword // Contains both hash and salt
-        //     }
-        // });
+        const user = await prisma.user.create({
+            data: {
+                name: body.name,
+                email: body.email,
+                password: hashedPassword // Contains both hash and salt
+            }
+        });
 
         c.status(201);
         return c.json({
             message: "User created successfully",
-            hashedPassword
+            userId: user.id
         });
     } catch (error) {
         console.error('Signup error:', error);
@@ -141,22 +141,30 @@ userRouter.post('/login', async(c) => {
     const prisma = getPrismaClient(c.env.DATABASE_URL);
 
     try {
-        const user = "38WiCTTsbXh6jUcUqN87OLKmQ16vExPw6NZWixdeibE=$PqxabyHeox/swW+Ge7gt2w==";
+        const user = await prisma.user.findUnique({
+            where: { email: body.email }
+        });
 
-        
+        if (!user) {
+            // Prevent timing attacks
+            await verifyPassword('dummy', 'dummyHash$dummySalt');
+            c.status(401);
+            return c.json({ error: "Invalid credentials" });
+        }
 
-        const isValid = await verifyPassword(body.password, user);
+        const isValid = await verifyPassword(body.password, user.password);
 
         if (!isValid) {
             c.status(401);
-            return c.json({ error: "Invalid credentials", isValid });
+            return c.json({ error: "Invalid credentials" });
         }
 
+        const { password: _, ...userData } = user;
 
         c.status(200);
         return c.json({
             message: "Login successful",
-            
+            user: userData
         });
     } catch (error) {
         console.error('Login error:', error);
