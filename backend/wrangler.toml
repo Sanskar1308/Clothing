@@ -1,0 +1,29 @@
+name = "clothing-backend"
+main = "src/index.ts"
+compatibility_date = "2025-01-02"
+
+compatibility_flags = [ "nodejs_compat" ]
+
+ [vars]
+DATABASE_URL="prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiNTczNGE1NWQtZDBiMi00MmZiLTlkY2UtMzJmOTU3YWFmNmI4IiwidGVuYW50X2lkIjoiZDhmZjUyOTljZWU3MjQ2YzNhZjBiMzU0ZGQ2OTU4NWI3YmJmNTZlNDQyNTk5ZjE0YjM5N2Y1NWYwNGUzOGUxNiIsImludGVybmFsX3NlY3JldCI6IjlhMTlkZWJjLWFmM2QtNGNlZS04YjBmLTExZGQ3ZGI4ZjAwZSJ9.MjtDhZWqLJcpgqgBZ1nRHUptJrynbqJ7c0DpkikFPe8"
+
+
+# [[kv_namespaces]]
+# binding = "MY_KV_NAMESPACE"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# [[r2_buckets]]
+# binding = "MY_BUCKET"
+# bucket_name = "my-bucket"
+
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "my-database"
+# database_id = ""
+
+# [ai]
+# binding = "AI"
+
+# [observability]
+# enabled = true
+# head_sampling_rate = 1
