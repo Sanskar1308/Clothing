@@ -2,14 +2,15 @@ import { Hono } from "hono";
 import { PrismaClient } from '@prisma/client/edge';
 import { withAccelerate } from '@prisma/extension-accelerate';
 import crypto from 'crypto';
+import { signupinput, signininput } from "@sanskar1308/clothing";
 
 function getPrismaClient(databaseUrl: string) {
     const prisma = new PrismaClient({
-      datasourceUrl: databaseUrl,
+        datasourceUrl: databaseUrl,
     }).$extends(withAccelerate());
-  
+
     return prisma;
-  }
+}
 
 
 // Configuration
@@ -24,7 +25,7 @@ async function hashPassword(password: string): Promise<string> {
     const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
-    
+
     const key = await crypto.subtle.importKey(
         'raw',
         passwordBuffer,
@@ -32,24 +33,24 @@ async function hashPassword(password: string): Promise<string> {
         false,
         ['deriveBits']
     );
-    
+
     const params = {
         name: 'PBKDF2',
         hash: 'SHA-256',
         salt: salt,
         iterations: ITERATIONS
     };
-    
+
     const derivedKey = await crypto.subtle.deriveBits(
         params,
         key,
         HASH_LENGTH * 8
     );
-    
+
     // Combine hash and salt with separator
     const hashBase64 = Buffer.from(derivedKey).toString('base64');
     const saltBase64 = Buffer.from(salt).toString('base64');
-    
+
     // Return combined string: $hash$salt
     return `${hashBase64}${SEPARATOR}${saltBase64}`;
 }
@@ -57,16 +58,16 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(inputPassword: string, storedValue: string): Promise<boolean> {
     // Split the stored value into hash and salt
     const [storedHash, storedSaltBase64] = storedValue.split(SEPARATOR);
-    
+
     if (!storedHash || !storedSaltBase64) {
         console.log("here bay")
         return false;
     }
-    
+
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(inputPassword);
     const salt = Buffer.from(storedSaltBase64, 'base64');
-    
+
     const key = await crypto.subtle.importKey(
         'raw',
         passwordBuffer,
@@ -74,20 +75,20 @@ async function verifyPassword(inputPassword: string, storedValue: string): Promi
         false,
         ['deriveBits']
     );
-    
+
     const params = {
         name: 'PBKDF2',
         hash: 'SHA-256',
         salt: salt,
         iterations: ITERATIONS
     };
-    
+
     const derivedKey = await crypto.subtle.deriveBits(
         params,
         key,
         HASH_LENGTH * 8
     );
-    
+
     const inputHash = Buffer.from(derivedKey).toString('base64');
     console.log(inputPassword)
     console.log(storedValue)
@@ -97,22 +98,26 @@ async function verifyPassword(inputPassword: string, storedValue: string): Promi
 type Bindings = {
     DATABASE_URL: string;
     JWT_SECRET: string;
-  }
+}
 
 export const userRouter = new Hono<{
     Bindings: Bindings;
 }>();
 
-userRouter.post('/signup', async(c) => {
+userRouter.post('/signup', async (c) => {
     const body = await c.req.json();
     const prisma = getPrismaClient(c.env.DATABASE_URL);
 
-    try {
-        if (!body.password || body.password.length < 8) {
-            c.status(400);
-            return c.json({ error: "Password must be at least 8 characters long" });
-        }
+    const response = signupinput.safeParse(body);
+    if(!response.success){
+      c.status(411);
+      return c.json({
+        message: "Wrong input",
+        error: response
+      })
+    }
 
+    try {
         // Store the combined hash+salt string
         const hashedPassword = await hashPassword(body.password);
 
@@ -136,9 +141,18 @@ userRouter.post('/signup', async(c) => {
     }
 });
 
-userRouter.post('/login', async(c) => {
+userRouter.post('/login', async (c) => {
     const body = await c.req.json();
     const prisma = getPrismaClient(c.env.DATABASE_URL);
+
+    const response = signininput.safeParse(body);
+    if(!response.success){
+        c.status(411);
+        return c.json({
+            message: "Wrong input",
+            error: response
+        })
+    }
 
     try {
         const user = await prisma.user.findUnique({
